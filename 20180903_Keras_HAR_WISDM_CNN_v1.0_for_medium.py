@@ -417,7 +417,7 @@ print("\n--- Fit the model ---\n")
 # training stops early
 callbacks_list = [
     keras.callbacks.ModelCheckpoint(
-        filepath='best_model.{epoch:02d}-{val_loss:.2f}.h5',
+        filepath='model_params/best_model.{epoch:02d}-{val_loss:.2f}.h5',
         monitor='val_loss', save_best_only=True),
     # 监控训练集准确率（accuracy），若连续4个周期（patience=1）未提升则提前终止训练
     keras.callbacks.EarlyStopping(monitor='accuracy', patience=4)
@@ -440,7 +440,7 @@ history = model_m.fit(x_train,
                       batch_size=BATCH_SIZE,
                       epochs=EPOCHS,
                       callbacks=callbacks_list,
-                      validation_split=0.1,
+                      validation_split=0.2,
                       verbose=1)
 
 # %%
