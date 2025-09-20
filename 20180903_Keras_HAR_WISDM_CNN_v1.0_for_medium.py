@@ -407,6 +407,8 @@ model_m.add(Dense(num_classes, activation='softmax'))
 # print(model_m.summary())
 # Accuracy on training data: 99%
 # Accuracy on test data: 91%
+# 实际验证下来训练集精度可达99%以上，但是验证集准确率只有82%左右
+# 但是在test数据集上可以到90%
 
 # %%
 
@@ -460,48 +462,49 @@ plt.ylim(0)
 plt.legend()
 plt.show()
 
-# #%%
-#
-# print("\n--- Check against test data ---\n")
-#
-# # Normalize features for training data set
-# df_test['x-axis'] = feature_normalize(df_test['x-axis'])
-# df_test['y-axis'] = feature_normalize(df_test['y-axis'])
-# df_test['z-axis'] = feature_normalize(df_test['z-axis'])
-#
-# df_test = df_test.round({'x-axis': 6, 'y-axis': 6, 'z-axis': 6})
-#
-# x_test, y_test = create_segments_and_labels(df_test,
-#                                             TIME_PERIODS,
-#                                             STEP_DISTANCE,
-#                                             LABEL)
-#
-# # Set input_shape / reshape for Keras
+#%%
+
+print("\n--- Check against test data ---\n")
+
+# Normalize features for training data set
+df_test['x-axis'] = feature_normalize(df_test['x-axis'])
+df_test['y-axis'] = feature_normalize(df_test['y-axis'])
+df_test['z-axis'] = feature_normalize(df_test['z-axis'])
+
+df_test = df_test.round({'x-axis': 6, 'y-axis': 6, 'z-axis': 6})
+
+x_test, y_test = create_segments_and_labels(df_test,
+                                            TIME_PERIODS,
+                                            STEP_DISTANCE,
+                                            LABEL)
+
+# Set input_shape / reshape for Keras
+# 这里无需再进行reshape
 # x_test = x_test.reshape(x_test.shape[0], input_shape)
-#
-# x_test = x_test.astype("float32")
-# y_test = y_test.astype("float32")
-#
-# y_test = np_utils.to_categorical(y_test, num_classes)
-#
-# score = model_m.evaluate(x_test, y_test, verbose=1)
-#
-# print("\nAccuracy on test data: %0.2f" % score[1])
-# print("\nLoss on test data: %0.2f" % score[0])
-#
-# # %%
-#
-# print("\n--- Confusion matrix for test data ---\n")
-#
-# y_pred_test = model_m.predict(x_test)
-# # Take the class with the highest probability from the test predictions
-# max_y_pred_test = np.argmax(y_pred_test, axis=1)
-# max_y_test = np.argmax(y_test, axis=1)
-#
-# show_confusion_matrix(max_y_test, max_y_pred_test)
-#
-# # %%
-#
-# print("\n--- Classification report for test data ---\n")
-#
-# print(classification_report(max_y_test, max_y_pred_test))
+
+x_test = x_test.astype("float32")
+y_test = y_test.astype("float32")
+
+y_test = np_utils.to_categorical(y_test, num_classes)
+
+score = model_m.evaluate(x_test, y_test, verbose=1)
+
+print("\nAccuracy on test data: %0.2f" % score[1])
+print("\nLoss on test data: %0.2f" % score[0])
+
+# %%
+
+print("\n--- Confusion matrix for test data ---\n")
+
+y_pred_test = model_m.predict(x_test)
+# Take the class with the highest probability from the test predictions
+max_y_pred_test = np.argmax(y_pred_test, axis=1)
+max_y_test = np.argmax(y_test, axis=1)
+
+show_confusion_matrix(max_y_test, max_y_pred_test)
+
+# %%
+
+print("\n--- Classification report for test data ---\n")
+
+print(classification_report(max_y_test, max_y_pred_test))

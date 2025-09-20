@@ -131,4 +131,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-.model_params/
+# 忽略模型参数
+model_params/
