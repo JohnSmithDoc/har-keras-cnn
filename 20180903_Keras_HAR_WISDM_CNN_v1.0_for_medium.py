@@ -14,6 +14,7 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Reshape, GlobalAveragePooling1D
 from keras.layers import Conv2D, MaxPooling2D, Conv1D, MaxPooling1D
+from keras.layers import LSTM
 from keras.utils import np_utils
 
 # %%
@@ -208,6 +209,7 @@ def create_segments_and_labels(df, time_steps, step, label_name):
         # 第一个[0]获取众数值数组
         # 第二个[0]提取众数值数组中的第一个众数（当存在多个并列众数时取第一个)
         # 参数keepdims=True来避免兼容性警告
+        # 对于LSTM来说，这段序列之后的那个label
         label = stats.mode(df[label_name][i: i + time_steps], keepdims=True)[0][0]
         segments.append([xs, ys, zs])
         labels.append(label)
@@ -324,11 +326,11 @@ LABELS = ["Downstairs",
 
 # 时间段的补偿，20Hz的采样率，80个时间段表明是4秒
 # The number of steps within one time segment
-TIME_PERIODS = 80
+TIME_PERIODS = 40 # 80，假设用40试一下，即2s的数据
 # The steps to take from one segment to the next; if this value is equal to
 # TIME_PERIODS, then there is no overlap between the segments
 # 每个时间片的距离，这里是40表明有50%的重叠率
-STEP_DISTANCE = 40
+STEP_DISTANCE = 20 # 40
 # Reshape the training data into segments
 # so that they can be processed by the network
 x_train, y_train = create_segments_and_labels(df_train,
@@ -393,17 +395,18 @@ print('New y_train shape: ', y_train.shape)
 
 print("\n--- Create neural network model ---\n")
 
-# 1D CNN neural network
+# 采用CNN-LSTM进行分类尝试
 model_m = Sequential()
-# model_m.add(Reshape((TIME_PERIODS, num_sensors), input_shape=(input_shape,)))
-model_m.add(Conv1D(100, 10, activation='relu'))
-model_m.add(Conv1D(100, 10, activation='relu'))
-model_m.add(MaxPooling1D(3))
-model_m.add(Conv1D(160, 10, activation='relu'))
-model_m.add(Conv1D(160, 10, activation='relu'))
-model_m.add(GlobalAveragePooling1D())
-model_m.add(Dropout(0.5))
+# model_m.add(Conv1D(filters=128, kernel_size=3, strides=1, activation="relu"))
+# model_m.add(MaxPooling1D(pool_size=2, strides=1,))
+# model_m.add(Conv1D(filters=64, kernel_size=2, strides=1, activation="relu"))
+# model_m.add(MaxPooling1D(pool_size=3, strides=1))
+model_m.add(LSTM(64, return_sequences=False, activation='relu', input_shape=(num_time_periods, num_sensors)))
+# model_m.add(LSTM(64, return_sequences=False, activation='relu'))
+model_m.add(Dense(64, activation='relu'))
+# model_m.add(Dropout(0.2))
 model_m.add(Dense(num_classes, activation='softmax'))
+
 # print(model_m.summary())
 # Accuracy on training data: 99%
 # Accuracy on test data: 91%
@@ -420,21 +423,24 @@ print("\n--- Fit the model ---\n")
 callbacks_list = [
     keras.callbacks.ModelCheckpoint(
         filepath='model_params/best_model.{epoch:02d}-{val_loss:.2f}.h5',
-        monitor='val_loss', save_best_only=True),
+        monitor='val_accuracy', save_best_only=True),
     # 监控训练集准确率（accuracy），若连续4个周期（patience=1）未提升则提前终止训练
-    keras.callbacks.EarlyStopping(monitor='accuracy', patience=4)
+    keras.callbacks.EarlyStopping(monitor='accuracy', patience=10)
 ]
 
+# optimizer='adam',的默认学习率应当是0.001
+# optimizer=keras.optimizers.Adam(0.01),
 model_m.compile(loss='categorical_crossentropy',
-                optimizer='adam', metrics=['accuracy'])
+                optimizer='adam',
+                metrics=['accuracy'])
 
 # 修改下训练方式，学习率为0.01
 # model_m.compile(loss='categorical_crossentropy',
 #                 optimizer=keras.optimizers.Adam(0.1), metrics=['accuracy'])
 
 # Hyper-parameters
-BATCH_SIZE = 400
-EPOCHS = 50
+BATCH_SIZE = 512
+EPOCHS = 100 # 50，对于LSTM，可能100更好
 
 # Enable validation to use ModelCheckpoint and EarlyStopping callbacks.
 history = model_m.fit(x_train,
